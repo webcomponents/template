@@ -1,6 +1,5 @@
 # template
-A minimal polyfill for <template>.
-
+A minimal polyfill for `<template>`.
 ## License
 
 Everything in this repository is BSD style license unless otherwise specified.
