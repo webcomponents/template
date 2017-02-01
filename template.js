@@ -10,28 +10,15 @@
 
 // minimal template polyfill
 (function() {
+  // NOTE: we rely on this cloneNode not causing element upgrade.
+  // This means this polyfill must load before the CE polyfill and
+  // this would need to be re-worked if a browser supports native CE
+  // but not <template>.
+  var Native_cloneNode = Node.prototype.cloneNode;
+  var Native_importNode = Document.prototype.importNode;
+  var Native_createElement = Document.prototype.createElement;
+
   var needsTemplate = (typeof HTMLTemplateElement === 'undefined');
-  // NOTE: Patch document.importNode to work around IE11 bug that
-  // casues children of a document fragment imported while
-  // there is a mutation observer to not have a parentNode (!?!)
-  // This needs to happen *after* patching importNode to fix template cloning
-  if (/Trident/.test(navigator.userAgent)) {
-    (function() {
-      var importNode = document.importNode;
-      document.importNode = function() {
-        var n = importNode.apply(document, arguments);
-        // Copy all children to a new document fragment since
-        // this one may be broken
-        if (n.nodeType === Node.DOCUMENT_FRAGMENT_NODE) {
-          var f = document.createDocumentFragment();
-          f.appendChild(n);
-          return f;
-        } else {
-          return n;
-        }
-      };
-    })();
-  }
 
   // returns true if nested templates cannot be cloned (they cannot be on
   // some impl's like Safari 8)
@@ -134,10 +121,9 @@
     });
 
     // Patch document.createElement to ensure newly created templates have content
-    var createElement = document.createElement;
-    document.createElement = function() {
+    Document.prototype.createElement = function() {
       'use strict';
-      var el = createElement.apply(document, arguments);
+      var el = Native_createElement.apply(this, arguments);
       if (el.localName === 'template') {
         TemplateImpl.decorate(el);
       }
@@ -166,14 +152,9 @@
 
   // make cloning/importing work!
   if (needsTemplate || needsCloning) {
-    // NOTE: we rely on this cloneNode not causing element upgrade.
-    // This means this polyfill must load before the CE polyfill and
-    // this would need to be re-worked if a browser supports native CE
-    // but not <template>.
-    var nativeCloneNode = Node.prototype.cloneNode;
 
     TemplateImpl.cloneNode = function(template, deep) {
-      var clone = nativeCloneNode.call(template, false);
+      var clone = Native_cloneNode.call(template, false);
       // NOTE: decorate doesn't auto-fix children because they are already
       // decorated so they need special clone fixup.
       if (this.decorate) {
@@ -183,7 +164,7 @@
         // NOTE: use native clone node to make sure CE's wrapped
         // cloneNode does not cause elements to upgrade.
         clone.content.appendChild(
-            nativeCloneNode.call(template.content, true));
+            Native_cloneNode.call(template.content, true));
         // now ensure nested templates are cloned correctly.
         this.fixClonedDom(clone.content, template.content);
       }
@@ -209,12 +190,10 @@
       }
     };
 
-    var originalImportNode = document.importNode;
-
     // override all cloning to fix the cloned subtree to contain properly
     // cloned templates.
     Node.prototype.cloneNode = function(deep) {
-      var dom = nativeCloneNode.call(this, deep);
+      var dom = Native_cloneNode.call(this, deep);
       // template.content is cloned iff `deep`.
       if (deep) {
         TemplateImpl.fixClonedDom(dom, this);
@@ -227,11 +206,11 @@
     // This is because the native import node creates the right document owned
     // subtree and `fixClonedDom` inserts cloned templates into this subtree,
     // thus updating the owner doc.
-    document.importNode = function(element, deep) {
+    Document.prototype.importNode = function(element, deep) {
       if (element.localName === TEMPLATE_TAG) {
         return TemplateImpl.cloneNode(element, deep);
       } else {
-        var dom = originalImportNode.call(document, element, deep);
+        var dom = Native_importNode.call(this, element, deep);
         if (deep) {
           TemplateImpl.fixClonedDom(dom, element);
         }
@@ -244,6 +223,28 @@
         return TemplateImpl.cloneNode(this, deep);
       };
     }
+  }
+
+  // NOTE: Patch document.importNode to work around IE11 bug that
+  // casues children of a document fragment imported while
+  // there is a mutation observer to not have a parentNode (!?!)
+  // This needs to happen *after* patching importNode to fix template cloning
+  if (/Trident/.test(navigator.userAgent)) {
+    (function() {
+      var Native_importNode = Document.prototype.importNode;
+      Document.prototype.importNode = function() {
+        var n = Native_importNode.apply(this, arguments);
+        // Copy all children to a new document fragment since
+        // this one may be broken
+        if (n.nodeType === Node.DOCUMENT_FRAGMENT_NODE) {
+          var f = this.createDocumentFragment();
+          f.appendChild(n);
+          return f;
+        } else {
+          return n;
+        }
+      };
+    })();
   }
 
   if (needsTemplate) {
