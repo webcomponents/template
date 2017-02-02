@@ -120,6 +120,28 @@
       TemplateImpl.bootstrap(document);
     });
 
+    // In case customElements polyfill is in use, ensure Templates are
+    // bootstrapped before it flushes upgrades
+    var ensureBootstrapped = function(cb) {
+      TemplateImpl.bootstrap(document);
+      cb();
+    };
+    let prevWhenReady;
+    if (window.customElements) {
+      prevWhenReady = customElements['polyfillFlushCallback'];
+    } else {
+      window.customElements = {};
+    }
+    if (prevWhenReady) {
+      window.customElements['polyfillFlushCallback'] = function(cb) {
+        prevWhenReady(function(cb) { 
+          ensureBootstrapped(cb)
+        });
+      };
+    } else {
+      window.customElements['polyfillFlushCallback'] = ensureBootstrapped;
+    }
+
     // Patch document.createElement to ensure newly created templates have content
     Document.prototype.createElement = function() {
       'use strict';
