@@ -52,6 +52,12 @@
     */
     TemplateImpl.prototype = Object.create(HTMLElement.prototype);
 
+
+    // if elements do not have `innerHTML` on instances, then
+    // templates can be patched by swizzling their prototypes.
+    var canProtoPatch =
+      !(document.createElement('div').hasOwnProperty('innerHTML'));
+
     /**
       The `decorate` method moves element children to the template's `content`.
       NOTE: there is no support for dynamically adding elements to templates.
@@ -66,43 +72,50 @@
       while (child = template.firstChild) {
         template.content.appendChild(child);
       }
-
-      template.cloneNode = function(deep) {
-        return TemplateImpl.cloneNode(this, deep);
-      };
-
-      // add innerHTML to template, if possible
-      // Note: this throws on Safari 7
-      if (canDecorate) {
-        try {
-          Object.defineProperty(template, 'innerHTML', {
-            get: function() {
-              var o = '';
-              for (var e = this.content.firstChild; e; e = e.nextSibling) {
-                o += e.outerHTML || escapeData(e.data);
-              }
-              return o;
-            },
-            set: function(text) {
-              contentDoc.body.innerHTML = text;
-              TemplateImpl.bootstrap(contentDoc);
-              while (this.content.firstChild) {
-                this.content.removeChild(this.content.firstChild);
-              }
-              while (contentDoc.body.firstChild) {
-                this.content.appendChild(contentDoc.body.firstChild);
-              }
-            },
-            configurable: true
-          });
-
-        } catch (err) {
-          canDecorate = false;
+      if (canProtoPatch) {
+        template.__proto__ = TemplateImpl.prototype;
+      } else {
+        template.cloneNode = function(deep) {
+          return TemplateImpl._cloneNode(this, deep);
+        };
+        // add innerHTML to template, if possible
+        // Note: this throws on Safari 7
+        if (canDecorate) {
+          try {
+            defineInnerHTML(template);
+          } catch (err) {
+            canDecorate = false;
+          }
         }
       }
       // bootstrap recursively
       TemplateImpl.bootstrap(template.content);
     };
+
+    function defineInnerHTML(obj) {
+      Object.defineProperty(obj, 'innerHTML', {
+        get: function() {
+          var o = '';
+          for (var e = this.content.firstChild; e; e = e.nextSibling) {
+            o += e.outerHTML || escapeData(e.data);
+          }
+          return o;
+        },
+        set: function(text) {
+          contentDoc.body.innerHTML = text;
+          TemplateImpl.bootstrap(contentDoc);
+          while (this.content.firstChild) {
+            this.content.removeChild(this.content.firstChild);
+          }
+          while (contentDoc.body.firstChild) {
+            this.content.appendChild(contentDoc.body.firstChild);
+          }
+        },
+        configurable: true
+      });
+    }
+
+    defineInnerHTML(TemplateImpl.prototype);
 
     /**
       The `bootstrap` method is called automatically and "fixes" all
@@ -119,28 +132,6 @@
     document.addEventListener('DOMContentLoaded', function() {
       TemplateImpl.bootstrap(document);
     });
-
-    // In case customElements polyfill is in use, ensure Templates are
-    // bootstrapped before it flushes upgrades
-    var ensureBootstrapped = function(cb) {
-      TemplateImpl.bootstrap(document);
-      cb();
-    };
-    let prevWhenReady;
-    if (window.customElements) {
-      prevWhenReady = customElements['polyfillFlushCallback'];
-    } else {
-      window.customElements = {};
-    }
-    if (prevWhenReady) {
-      window.customElements['polyfillFlushCallback'] = function(cb) {
-        prevWhenReady(function(cb) { 
-          ensureBootstrapped(cb)
-        });
-      };
-    } else {
-      window.customElements['polyfillFlushCallback'] = ensureBootstrapped;
-    }
 
     // Patch document.createElement to ensure newly created templates have content
     Document.prototype.createElement = function() {
@@ -175,7 +166,7 @@
   // make cloning/importing work!
   if (needsTemplate || needsCloning) {
 
-    TemplateImpl.cloneNode = function(template, deep) {
+    TemplateImpl._cloneNode = function(template, deep) {
       var clone = Native_cloneNode.call(template, false);
       // NOTE: decorate doesn't auto-fix children because they are already
       // decorated so they need special clone fixup.
@@ -192,6 +183,10 @@
       }
       return clone;
     };
+
+    TemplateImpl.prototype.cloneNode = function(deep) {
+      return TemplateImpl._cloneNode(this, deep);
+    }
 
     // Given a source and cloned subtree, find <template>'s in the cloned
     // subtree and replace them with cloned <template>'s from source.
@@ -230,7 +225,7 @@
     // thus updating the owner doc.
     Document.prototype.importNode = function(element, deep) {
       if (element.localName === TEMPLATE_TAG) {
-        return TemplateImpl.cloneNode(element, deep);
+        return TemplateImpl._cloneNode(element, deep);
       } else {
         var dom = Native_importNode.call(this, element, deep);
         if (deep) {
@@ -242,7 +237,7 @@
 
     if (needsCloning) {
       HTMLTemplateElement.prototype.cloneNode = function(deep) {
-        return TemplateImpl.cloneNode(this, deep);
+        return TemplateImpl._cloneNode(this, deep);
       };
     }
   }
