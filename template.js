@@ -21,7 +21,8 @@
   var needsTemplate = (typeof HTMLTemplateElement === 'undefined');
 
   // returns true if nested templates cannot be cloned (they cannot be on
-  // some impl's like Safari 8)
+  // some impl's like Safari 8 and Edge)
+  // OR if cloning a document fragment does not result in a document fragment
   var needsCloning = (function() {
     if (!needsTemplate) {
       var t = document.createElement('template');
@@ -29,7 +30,8 @@
       t2.content.appendChild(document.createElement('div'));
       t.content.appendChild(t2);
       var clone = t.cloneNode(true);
-      return (clone.content.childNodes.length === 0 || clone.content.firstChild.content.childNodes.length === 0);
+      return (clone.content.childNodes.length === 0 || clone.content.firstChild.content.childNodes.length === 0
+        || !(document.createDocumentFragment().cloneNode() instanceof DocumentFragment));
     }
   })();
 
@@ -210,7 +212,18 @@
     // override all cloning to fix the cloned subtree to contain properly
     // cloned templates.
     Node.prototype.cloneNode = function(deep) {
-      var dom = Native_cloneNode.call(this, deep);
+      var dom;
+      // workaround for Edge bug cloning documentFragments
+      // https://developer.microsoft.com/en-us/microsoft-edge/platform/issues/8619646/
+      if (this instanceof DocumentFragment) {
+        if (!deep) {
+          return this.ownerDocument.createDocumentFragment();
+        } else {
+          dom = this.ownerDocument.importNode(this, true);
+        }
+      } else {
+        dom = Native_cloneNode.call(this, deep);
+      }
       // template.content is cloned iff `deep`.
       if (deep) {
         TemplateImpl.fixClonedDom(dom, this);
