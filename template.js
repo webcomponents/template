@@ -74,6 +74,9 @@
       while (child = template.firstChild) {
         template.content.appendChild(child);
       }
+      // NOTE: prefer prototype patching for performance and
+      // because on some browsers (IE11), re-defining `innerHTML`
+      // can result in intermittent errors.
       if (canProtoPatch) {
         template.__proto__ = TemplateImpl.prototype;
       } else {
