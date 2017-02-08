@@ -10,15 +10,39 @@
 
 // minimal template polyfill
 (function() {
+
+  var needsTemplate = (typeof HTMLTemplateElement === 'undefined');
+
+  // NOTE: Patch document.importNode to work around IE11 bug that
+  // casues children of a document fragment imported while
+  // there is a mutation observer to not have a parentNode (!?!)
+  // It's important that this is the first patch to `importNode` so that
+  // dom produced for later patches is correct.
+  if (/Trident/.test(navigator.userAgent)) {
+    (function() {
+      var Native_importNode = Document.prototype.importNode;
+      Document.prototype.importNode = function() {
+        var n = Native_importNode.apply(this, arguments);
+        // Copy all children to a new document fragment since
+        // this one may be broken
+        if (n.nodeType === Node.DOCUMENT_FRAGMENT_NODE) {
+          var f = this.createDocumentFragment();
+          f.appendChild(n);
+          return f;
+        } else {
+          return n;
+        }
+      };
+    })();
+  }
+
   // NOTE: we rely on this cloneNode not causing element upgrade.
   // This means this polyfill must load before the CE polyfill and
   // this would need to be re-worked if a browser supports native CE
   // but not <template>.
   var Native_cloneNode = Node.prototype.cloneNode;
-  var Native_importNode = Document.prototype.importNode;
   var Native_createElement = Document.prototype.createElement;
-
-  var needsTemplate = (typeof HTMLTemplateElement === 'undefined');
+  var Native_importNode = Document.prototype.importNode;
 
   // returns true if nested templates cannot be cloned (they cannot be on
   // some impl's like Safari 8 and Edge)
@@ -256,28 +280,6 @@
         return HTMLTemplateElement._cloneNode(this, deep);
       };
     }
-  }
-
-  // NOTE: Patch document.importNode to work around IE11 bug that
-  // casues children of a document fragment imported while
-  // there is a mutation observer to not have a parentNode (!?!)
-  // This needs to happen *after* patching importNode to fix template cloning
-  if (/Trident/.test(navigator.userAgent)) {
-    (function() {
-      var Native_importNode = Document.prototype.importNode;
-      Document.prototype.importNode = function() {
-        var n = Native_importNode.apply(this, arguments);
-        // Copy all children to a new document fragment since
-        // this one may be broken
-        if (n.nodeType === Node.DOCUMENT_FRAGMENT_NODE) {
-          var f = this.createDocumentFragment();
-          f.appendChild(n);
-          return f;
-        } else {
-          return n;
-        }
-      };
-    })();
   }
 
   if (needsTemplate) {
