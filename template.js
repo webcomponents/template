@@ -60,7 +60,7 @@
   })();
 
   var TEMPLATE_TAG = 'template';
-  var HTMLTemplateElement = function() {};
+  var PolyfilledHTMLTemplateElement = function() {};
 
   if (needsTemplate) {
 
@@ -76,7 +76,7 @@
     /**
       Provides a minimal shim for the <template> element.
     */
-    HTMLTemplateElement.prototype = Object.create(HTMLElement.prototype);
+    PolyfilledHTMLTemplateElement.prototype = Object.create(HTMLElement.prototype);
 
 
     // if elements do not have `innerHTML` on instances, then
@@ -88,7 +88,7 @@
       The `decorate` method moves element children to the template's `content`.
       NOTE: there is no support for dynamically adding elements to templates.
     */
-    HTMLTemplateElement.decorate = function(template) {
+    PolyfilledHTMLTemplateElement.decorate = function(template) {
       // if the template is decorated, return fast
       if (template.content) {
         return;
@@ -102,10 +102,10 @@
       // because on some browsers (IE11), re-defining `innerHTML`
       // can result in intermittent errors.
       if (canProtoPatch) {
-        template.__proto__ = HTMLTemplateElement.prototype;
+        template.__proto__ = PolyfilledHTMLTemplateElement.prototype;
       } else {
         template.cloneNode = function(deep) {
-          return HTMLTemplateElement._cloneNode(this, deep);
+          return PolyfilledHTMLTemplateElement._cloneNode(this, deep);
         };
         // add innerHTML to template, if possible
         // Note: this throws on Safari 7
@@ -118,7 +118,7 @@
         }
       }
       // bootstrap recursively
-      HTMLTemplateElement.bootstrap(template.content);
+      PolyfilledHTMLTemplateElement.bootstrap(template.content);
     };
 
     function defineInnerHTML(obj) {
@@ -132,7 +132,7 @@
         },
         set: function(text) {
           contentDoc.body.innerHTML = text;
-          HTMLTemplateElement.bootstrap(contentDoc);
+          PolyfilledHTMLTemplateElement.bootstrap(contentDoc);
           while (this.content.firstChild) {
             this.content.removeChild(this.content.firstChild);
           }
@@ -144,22 +144,22 @@
       });
     }
 
-    defineInnerHTML(HTMLTemplateElement.prototype);
+    defineInnerHTML(PolyfilledHTMLTemplateElement.prototype);
 
     /**
       The `bootstrap` method is called automatically and "fixes" all
       <template> elements in the document referenced by the `doc` argument.
     */
-    HTMLTemplateElement.bootstrap = function(doc) {
+    PolyfilledHTMLTemplateElement.bootstrap = function(doc) {
       var templates = doc.querySelectorAll(TEMPLATE_TAG);
       for (var i=0, l=templates.length, t; (i<l) && (t=templates[i]); i++) {
-        HTMLTemplateElement.decorate(t);
+        PolyfilledHTMLTemplateElement.decorate(t);
       }
     };
 
     // auto-bootstrapping for main document
     document.addEventListener('DOMContentLoaded', function() {
-      HTMLTemplateElement.bootstrap(document);
+      PolyfilledHTMLTemplateElement.bootstrap(document);
     });
 
     // Patch document.createElement to ensure newly created templates have content
@@ -167,7 +167,7 @@
       'use strict';
       var el = Native_createElement.apply(this, arguments);
       if (el.localName === 'template') {
-        HTMLTemplateElement.decorate(el);
+        PolyfilledHTMLTemplateElement.decorate(el);
       }
       return el;
     };
@@ -195,7 +195,7 @@
   // make cloning/importing work!
   if (needsTemplate || needsCloning) {
 
-    HTMLTemplateElement._cloneNode = function(template, deep) {
+    PolyfilledHTMLTemplateElement._cloneNode = function(template, deep) {
       var clone = Native_cloneNode.call(template, false);
       // NOTE: decorate doesn't auto-fix children because they are already
       // decorated so they need special clone fixup.
@@ -213,14 +213,14 @@
       return clone;
     };
 
-    HTMLTemplateElement.prototype.cloneNode = function(deep) {
-      return HTMLTemplateElement._cloneNode(this, deep);
+    PolyfilledHTMLTemplateElement.prototype.cloneNode = function(deep) {
+      return PolyfilledHTMLTemplateElement._cloneNode(this, deep);
     }
 
     // Given a source and cloned subtree, find <template>'s in the cloned
     // subtree and replace them with cloned <template>'s from source.
     // We must do this because only the source templates have proper .content.
-    HTMLTemplateElement.fixClonedDom = function(clone, source) {
+    PolyfilledHTMLTemplateElement.fixClonedDom = function(clone, source) {
       // do nothing if cloned node is not an element
       if (!source.querySelectorAll) return;
       // these two lists should be coincident
@@ -253,7 +253,7 @@
       }
       // template.content is cloned iff `deep`.
       if (deep) {
-        HTMLTemplateElement.fixClonedDom(dom, this);
+        PolyfilledHTMLTemplateElement.fixClonedDom(dom, this);
       }
       return dom;
     };
@@ -265,25 +265,25 @@
     // thus updating the owner doc.
     Document.prototype.importNode = function(element, deep) {
       if (element.localName === TEMPLATE_TAG) {
-        return HTMLTemplateElement._cloneNode(element, deep);
+        return PolyfilledHTMLTemplateElement._cloneNode(element, deep);
       } else {
         var dom = Native_importNode.call(this, element, deep);
         if (deep) {
-          HTMLTemplateElement.fixClonedDom(dom, element);
+          PolyfilledHTMLTemplateElement.fixClonedDom(dom, element);
         }
         return dom;
       }
     };
 
     if (needsCloning) {
-      HTMLTemplateElement.prototype.cloneNode = function(deep) {
-        return HTMLTemplateElement._cloneNode(this, deep);
+      window.HTMLTemplateElement.prototype.cloneNode = function(deep) {
+        return PolyfilledHTMLTemplateElement._cloneNode(this, deep);
       };
     }
   }
 
   if (needsTemplate) {
-    window.HTMLTemplateElement = HTMLTemplateElement;
+    window.HTMLTemplateElement = PolyfilledHTMLTemplateElement;
   }
 
 })();
