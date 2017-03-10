@@ -1,0 +1,29 @@
+{
+  "name": "html-template",
+  "version": "1.0.0-rc.1",
+  "description": "Minimal template polyfills needed by webcomponents.js",
+  "main": "template.js",
+  "authors": [
+    "The Polymer Authors"
+  ],
+  "license": "BSD-3-Clause",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/webcomponents/template.git"
+  },
+  "keywords": [
+    "webcomponents",
+    "web-components"
+  ],
+  "homepage": "https://webcomponents.org/polyfills",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "devDependencies": {
+    "web-component-tester": "^5.0.0"
+  }
+}
