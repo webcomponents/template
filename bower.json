@@ -1,5 +1,5 @@
 {
-  "name": "html-template",
+  "name": "template",
   "version": "1.0.0-rc.1",
   "description": "HTML Template polyfill",
   "main": "template.js",
