@@ -10,7 +10,7 @@
     "type": "git",
     "url": "https://github.com/webcomponents/template.git"
   },
-  "author": "The Polymer Project Authors (https://polymer.github.io/AUTHORS.txt)",
+  "author": "The Polymer Authors (https://polymer.github.io/AUTHORS.txt)",
   "keywords": [
     "html-template",
     "htmltemplate",
