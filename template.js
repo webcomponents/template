@@ -124,11 +124,13 @@
     function defineInnerHTML(obj) {
       Object.defineProperty(obj, 'innerHTML', {
         get: function() {
-          var o = '';
+          var o = [];
           for (var e = this.content.firstChild; e; e = e.nextSibling) {
-            o += e.outerHTML || escapeData(e.data);
+            if (e.nodeType === Node.ELEMENT_NODE) o.push(e.outerHTML);
+            else if (e.nodeType === Node.COMMENT_NODE) o.push('<!--' + e.data + '-->');
+            else o.push(escapeData(e.data));
           }
-          return o;
+          return o.join('');
         },
         set: function(text) {
           contentDoc.body.innerHTML = text;
