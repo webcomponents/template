@@ -166,7 +166,7 @@
         td: [ 3, "<table><tbody><tr>", "</tr></tbody></table>" ]
       };
       // https://github.com/jquery/jquery/blob/a6b07052/src/manipulation/var/rtagName.js
-      var tag = ( /^\s*<([a-z][^\/\0>\x20\t\r\n\f]+)/i.exec(text) || [ "", "" ])[1].toLowerCase();
+      var tag = ( /<([a-z][^\/\0>\x20\t\r\n\f]+)/i.exec(text) || [ "", "" ])[1].toLowerCase();
       return map[tag] || [ 0, "", "" ];
     }
 
