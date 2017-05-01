@@ -126,6 +126,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           assert.equal(imp.innerHTML, s);
           assert.equal(imp.content.childNodes.length, 2);
           assert.equal(imp.content.firstChild.nodeName, "TD");
+
+          s = '<!--Comment--><tr><td>Content</td></tr>';
+          imp.innerHTML = s;
+          assert.equal(imp.innerHTML, s);
+
+          s = '<!--<tr><td>Comment</td></tr>--><tr><td>Content</td></tr>';
+          imp.innerHTML = s;
+          assert.equal(imp.innerHTML, s);
         });
 
         test('clone', function() {
