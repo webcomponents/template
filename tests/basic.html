@@ -108,6 +108,24 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           // innerHTML is properly escaped
           assert.equal(imp.innerHTML, escaped);
           assert.equal(imp.content.textContent, div.textContent);
+
+          s = '<tr><td>row</td></tr>';
+          imp.innerHTML = s;
+          assert.equal(imp.innerHTML, s);
+          assert.equal(imp.content.childNodes.length, 1);
+          assert.equal(imp.content.firstChild.nodeName, "TR");
+
+          s = '<option>label</option>';
+          imp.innerHTML = s;
+          assert.equal(imp.innerHTML, s);
+          assert.equal(imp.content.childNodes.length, 1);
+          assert.equal(imp.content.firstChild.nodeName, "OPTION");
+
+          s = '<td>one</td><td>two</td>';
+          imp.innerHTML = s;
+          assert.equal(imp.innerHTML, s);
+          assert.equal(imp.content.childNodes.length, 2);
+          assert.equal(imp.content.firstChild.nodeName, "TD");
         });
 
         test('clone', function() {
