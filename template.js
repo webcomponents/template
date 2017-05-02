@@ -81,7 +81,7 @@
 
     // if elements do not have `innerHTML` on instances, then
     // templates can be patched by swizzling their prototypes.
-    var canProtoPatch =
+    var canProtoPatch = { __proto__: [] } instanceof Array &&
       !(document.createElement('div').hasOwnProperty('innerHTML'));
 
     /**
