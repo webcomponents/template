@@ -125,8 +125,15 @@
       Object.defineProperty(obj, 'innerHTML', {
         get: function() {
           var o = '';
+          var div = contentDoc.createElement('div');
           for (var e = this.content.firstChild; e; e = e.nextSibling) {
-            o += e.outerHTML || escapeData(e.data);
+            if (e.nodeType == Node.ELEMENT_NODE) {
+              o += e.outerHTML;
+            } else {
+              div.appendChild(e.cloneNode(true));
+              o += div.innerHTML;
+              div.textContent = '';
+            }
           }
           return o;
         },
@@ -146,7 +153,7 @@
             this.content.appendChild(body.firstChild);
           }
           // https://github.com/jquery/jquery/blob/a6b07052/src/manipulation/buildFragment.js#L59
-          body.textContent = "";
+          body.textContent = '';
         },
         configurable: true
       });
