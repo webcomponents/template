@@ -1,0 +1,35 @@
+{
+  "name": "template",
+  "description": "HTML Template polyfill",
+  "main": "template.js",
+  "authors": [
+    "The Polymer Authors (https://polymer.github.io/AUTHORS.txt)"
+  ],
+  "license": "BSD-3-Clause",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/webcomponents/template.git"
+  },
+  "keywords": [
+    "html-template",
+    "htmltemplate",
+    "html-templates",
+    "htmltemplates",
+    "web-components",
+    "webcomponents",
+    "polyfill",
+    "shim"
+  ],
+  "homepage": "https://webcomponents.org/polyfills",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests",
+    "package.json"
+  ],
+  "devDependencies": {
+    "web-component-tester": "^5.0.0"
+  }
+}
