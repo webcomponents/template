@@ -1,6 +1,6 @@
 {
   "name": "@webcomponents/template",
-  "version": "1.0.0-rc.1",
+  "version": "1.0.0",
   "description": "HTML Template polyfill",
   "main": "template.js",
   "directories": {
@@ -31,5 +31,8 @@
   "homepage": "https://webcomponents.org/polyfills",
   "devDependencies": {
     "web-component-tester": "^5.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
