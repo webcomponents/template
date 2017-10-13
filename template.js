@@ -158,8 +158,7 @@
             while (contentDoc.body.firstChild) {
               docFrag.appendChild(contentDoc.body.firstChild);
             }
-            this.parentNode.insertBefore(docFrag, this);
-            this.parentNode.removeChild(this);
+            this.parentNode.replaceChild(docFrag, this);
           } else {
             throw new Error("Failed to set the 'outerHTML' property on 'Element': This element has no parent node.")
           }
