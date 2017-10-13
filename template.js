@@ -10,6 +10,7 @@
 
 // minimal template polyfill
 (function() {
+  'use strict';
 
   var needsTemplate = (typeof HTMLTemplateElement === 'undefined');
 
@@ -95,7 +96,7 @@
       }
       template.content = contentDoc.createDocumentFragment();
       var child;
-      while (child = template.firstChild) {
+      while ((child = template.firstChild)) {
         template.content.appendChild(child);
       }
       // NOTE: prefer prototype patching for performance and
@@ -112,6 +113,7 @@
         if (canDecorate) {
           try {
             defineInnerHTML(template);
+            defineOuterHTML(template);
           } catch (err) {
             canDecorate = false;
           }
@@ -121,7 +123,7 @@
       PolyfilledHTMLTemplateElement.bootstrap(template.content);
     };
 
-    function defineInnerHTML(obj) {
+    var defineInnerHTML = function defineInnerHTML(obj) {
       Object.defineProperty(obj, 'innerHTML', {
         get: function() {
           var o = '';
@@ -144,7 +146,29 @@
       });
     }
 
+    var defineOuterHTML = function defineOuterHTML(obj) {
+      Object.defineProperty(obj, 'outerHTML', {
+        get: function() {
+          return '<template>' + this.innerHTML + '</template>';
+        },
+        set: function(innerHTML) {
+          if (this.parentNode) {
+            contentDoc.body.innerHTML = innerHTML;
+            var docFrag = document.createDocumentFragment();
+            while (contentDoc.body.firstChild) {
+              docFrag.appendChild(contentDoc.body.firstChild);
+            }
+            this.parentNode.replaceChild(docFrag, this);
+          } else {
+            throw new Error("Failed to set the 'outerHTML' property on 'Element': This element has no parent node.")
+          }
+        },
+        configurable: true
+      })
+    }
+
     defineInnerHTML(PolyfilledHTMLTemplateElement.prototype);
+    defineOuterHTML(PolyfilledHTMLTemplateElement.prototype);
 
     /**
       The `bootstrap` method is called automatically and "fixes" all
@@ -174,7 +198,7 @@
 
     var escapeDataRegExp = /[&\u00A0<>]/g;
 
-    function escapeReplace(c) {
+    var escapeReplace = function escapeReplace(c) {
       switch (c) {
         case '&':
           return '&amp;';
@@ -187,7 +211,7 @@
       }
     }
 
-    function escapeData(s) {
+    var escapeData = function escapeData(s) {
       return s.replace(escapeDataRegExp, escapeReplace);
     }
   }

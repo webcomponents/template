@@ -267,6 +267,17 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           assert.equal(deepClone.ownerDocument, document);
         });
 
+        test('outerHTML', function() {
+          var t = document.createElement('template');
+          setupTemplate(t, '<div>foo</div>');
+          assert.equal(t.outerHTML, '<template><div>foo</div></template>');
+          document.body.appendChild(t);
+          t.outerHTML = '<div>replaced</div>';
+          assert.equal(t.parentNode, null);
+          var replaced = document.body.lastElementChild;
+          assert.equal(replaced.outerHTML, '<div>replaced</div>');
+        });
+
       });
     </script>
   </body>
