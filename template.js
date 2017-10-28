@@ -14,26 +14,116 @@
 
   var needsTemplate = (typeof HTMLTemplateElement === 'undefined');
 
-  // NOTE: Patch document.importNode to work around IE11 bug that
-  // casues children of a document fragment imported while
-  // there is a mutation observer to not have a parentNode (!?!)
-  // It's important that this is the first patch to `importNode` so that
-  // dom produced for later patches is correct.
+  // NOTE: Replace DocumentFragment to work around IE11 bug that
+  // casues children of a document fragment modified while
+  // there is a mutation observer to not have a parentNode, or
+  // have a broken parentNode (!?!)
   if (/Trident/.test(navigator.userAgent)) {
     (function() {
-      var Native_importNode = Document.prototype.importNode;
-      Document.prototype.importNode = function() {
-        var n = Native_importNode.apply(this, arguments);
-        // Copy all children to a new document fragment since
-        // this one may be broken
-        if (n.nodeType === Node.DOCUMENT_FRAGMENT_NODE) {
-          var f = this.createDocumentFragment();
-          f.appendChild(n);
-          return f;
-        } else {
-          return n;
+      var PolyfilledDocumentFragment = function(){};
+      PolyfilledDocumentFragment.prototype = Object.create(DocumentFragment.prototype);
+
+      window.DocumentFragment = PolyfilledDocumentFragment;
+
+      var Native_cloneNode = Node.prototype.cloneNode;
+      var docFragCloneNode;
+      DocumentFragment.prototype.cloneNode = docFragCloneNode = function cloneNode(deep) {
+        var newFrag = this.ownerDocument.createDocumentFragment();
+        if (deep) {
+          for (var i = 0; i < this.childNodes.length; i++) {
+            newFrag.appendChild(Native_cloneNode.call(this.childNodes[i], true));
+          }
         }
+        return newFrag;
       };
+
+      // IE's DocumentFragment querySelector code doesn't work when
+      // called on an element instance
+      DocumentFragment.prototype.querySelectorAll = HTMLElement.prototype.querySelectorAll;
+      DocumentFragment.prototype.querySelector = HTMLElement.prototype.querySelector;
+
+      Object.defineProperty(DocumentFragment.prototype, 'nodeType', {
+        get: function() {
+          return Node.DOCUMENT_FRAGMENT_NODE;
+        },
+        configurable: true
+      });
+
+      Object.defineProperty(DocumentFragment.prototype, 'localName', {
+        get: function() {
+          return undefined;
+        },
+        configurable: true
+      });
+
+      var Native_insertBefore = Node.prototype.insertBefore;
+      function insertBefore(newNode, refNode) {
+        if (newNode instanceof DocumentFragment) {
+          var child;
+          while ((child = newNode.firstChild)) {
+            Native_insertBefore.call(this, child, refNode);
+          }
+        } else {
+          Native_insertBefore.call(this, newNode, refNode);
+        }
+        return newNode;
+      }
+      Node.prototype.insertBefore = insertBefore;
+
+      var Native_appendChild = Node.prototype.appendChild;
+      Node.prototype.appendChild = function appendChild(child) {
+        if (child instanceof DocumentFragment) {
+          insertBefore.call(this, child, null);
+        } else {
+          Native_appendChild.call(this, child);
+        }
+        return child;
+      }
+
+      var Native_removeChild = Node.prototype.removeChild;
+      var Native_replaceChild = Node.prototype.replaceChild;
+      Node.prototype.replaceChild = function replaceChild(newChild, oldChild) {
+        if (newChild instanceof DocumentFragment) {
+          insertBefore.call(this, newChild, oldChild);
+          Native_removeChild.call(this, oldChild);
+        } else {
+          Native_replaceChild.call(this, newChild, oldChild);
+        }
+        return oldChild;
+      }
+
+      Node.prototype.cloneNode = function cloneNode(deep) {
+        if (this instanceof DocumentFragment) {
+          return docFragCloneNode.call(this, deep);
+        } else {
+          return Native_cloneNode.call(this, deep);
+        }
+      }
+
+      Document.prototype.createDocumentFragment = function createDocumentFragment() {
+        var frag = this.createElement('df');
+        frag.__proto__ = DocumentFragment.prototype;
+        return frag;
+      }
+
+      // in IE 11, when a MutationObserver is active, DocumentFragment
+      // children may have null out parentNode.
+      // Just create a new DocumentFragment in this case
+      var Native_importNode = Document.prototype.importNode;
+      function importNode(impNode, deep) {
+        if (impNode instanceof DocumentFragment) {
+          var newNode = this.createDocumentFragment();
+          if (deep) {
+            for (var i = 0; i < impNode.childNodes.length; i++) {
+              Native_appendChild.call(newNode, importNode.call(this, impNode.childNodes[i], true));
+            }
+          }
+          return newNode;
+        } else {
+          return Native_importNode.call(this, impNode, deep);
+        }
+      }
+      Document.prototype.importNode = importNode;
     })();
   }
 
@@ -154,7 +244,7 @@
         set: function(innerHTML) {
           if (this.parentNode) {
             contentDoc.body.innerHTML = innerHTML;
-            var docFrag = document.createDocumentFragment();
+            var docFrag = this.ownerDocument.createDocumentFragment();
             while (contentDoc.body.firstChild) {
               docFrag.appendChild(contentDoc.body.firstChild);
             }
@@ -249,6 +339,9 @@
       if (!source.querySelectorAll) return;
       // these two lists should be coincident
       var s$ = source.querySelectorAll(TEMPLATE_TAG);
+      if (s$.length === 0) {
+        return;
+      }
       var t$ = clone.querySelectorAll(TEMPLATE_TAG);
       for (var i=0, l=t$.length, t, s; i<l; i++) {
         s = s$[i];
