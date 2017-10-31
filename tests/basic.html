@@ -79,7 +79,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
         test('stamping', function() {
           document.body.appendChild(document.importNode(template.content, true));
-          content = document.querySelector('#content');
+          var content = document.querySelector('#content');
           assert.isDefined(content, 'template content stamped into document');
         });
 
@@ -161,7 +161,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           setupTemplate(t, s);
           imp.appendChild(t);
           var impClone = imp.cloneNode(true);
-          var imp = imp.firstChild;
+          imp = imp.firstChild;
           var deepClone = impClone.firstChild;
           assert.equal(deepClone.content.childNodes.length, 2,
               'deep cloned template.content is empty');

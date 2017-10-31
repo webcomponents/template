@@ -20,21 +20,22 @@
   // have a broken parentNode (!?!)
   if (/Trident/.test(navigator.userAgent)) {
     (function() {
-      var PolyfilledDocumentFragment = function(){};
-      PolyfilledDocumentFragment.prototype = Object.create(DocumentFragment.prototype);
-
-      window.DocumentFragment = PolyfilledDocumentFragment;
 
       var Native_cloneNode = Node.prototype.cloneNode;
-      var docFragCloneNode;
-      DocumentFragment.prototype.cloneNode = docFragCloneNode = function cloneNode(deep) {
-        var newFrag = this.ownerDocument.createDocumentFragment();
-        if (deep) {
-          for (var i = 0; i < this.childNodes.length; i++) {
-            newFrag.appendChild(Native_cloneNode.call(this.childNodes[i], true));
-          }
+      var docFragCloneNode = DocumentFragment.prototype.cloneNode = function cloneNode(deep) {
+        var newFrag = Native_cloneNode.call(this, deep);
+        if (this instanceof DocumentFragment) {
+          newFrag.__proto__ = DocumentFragment.prototype;
         }
         return newFrag;
+      };
+
+      Node.prototype.cloneNode = function cloneNode(deep) {
+        if (this instanceof DocumentFragment) {
+          return docFragCloneNode.call(this, deep);
+        } else {
+          return Native_cloneNode.call(this, deep);
+        }
       };
 
       // IE's DocumentFragment querySelector code doesn't work when
@@ -42,25 +43,35 @@
       DocumentFragment.prototype.querySelectorAll = HTMLElement.prototype.querySelectorAll;
       DocumentFragment.prototype.querySelector = HTMLElement.prototype.querySelector;
 
-      Object.defineProperty(DocumentFragment.prototype, 'nodeType', {
-        get: function() {
-          return Node.DOCUMENT_FRAGMENT_NODE;
+      Object.defineProperties(DocumentFragment.prototype, {
+        'nodeType': {
+          get: function () {
+            return Node.DOCUMENT_FRAGMENT_NODE;
+          },
+          configurable: true
         },
-        configurable: true
+
+        'localName': {
+          get: function () {
+            return undefined;
+          },
+          configurable: true
+        },
+
+        'nodeName': {
+          get: function () {
+            return '#document-fragment';
+          },
+          configurable: true
+        }
       });
 
-      Object.defineProperty(DocumentFragment.prototype, 'localName', {
-        get: function() {
-          return undefined;
-        },
-        configurable: true
-      });
-
+      var Native_firstChild = Object.getOwnPropertyDescriptor(Node.prototype, 'firstChild').get;
       var Native_insertBefore = Node.prototype.insertBefore;
       function insertBefore(newNode, refNode) {
         if (newNode instanceof DocumentFragment) {
           var child;
-          while ((child = newNode.firstChild)) {
+          while ((child = Native_firstChild.call(newNode))) {
             Native_insertBefore.call(this, child, refNode);
           }
         } else {
@@ -78,7 +89,7 @@
           Native_appendChild.call(this, child);
         }
         return child;
-      }
+      };
 
       var Native_removeChild = Node.prototype.removeChild;
       var Native_replaceChild = Node.prototype.replaceChild;
@@ -90,38 +101,24 @@
           Native_replaceChild.call(this, newChild, oldChild);
         }
         return oldChild;
-      }
-
-      Node.prototype.cloneNode = function cloneNode(deep) {
-        if (this instanceof DocumentFragment) {
-          return docFragCloneNode.call(this, deep);
-        } else {
-          return Native_cloneNode.call(this, deep);
-        }
-      }
+      };
 
       Document.prototype.createDocumentFragment = function createDocumentFragment() {
         var frag = this.createElement('df');
         frag.__proto__ = DocumentFragment.prototype;
         return frag;
-      }
+      };
 
       // in IE 11, when a MutationObserver is active, DocumentFragment
       // children may have null out parentNode.
       // Just create a new DocumentFragment in this case
       var Native_importNode = Document.prototype.importNode;
       function importNode(impNode, deep) {
+        var newNode = Native_importNode.call(this, impNode, deep);
         if (impNode instanceof DocumentFragment) {
-          var newNode = this.createDocumentFragment();
-          if (deep) {
-            for (var i = 0; i < impNode.childNodes.length; i++) {
-              Native_appendChild.call(newNode, importNode.call(this, impNode.childNodes[i], true));
-            }
-          }
-          return newNode;
-        } else {
-          return Native_importNode.call(this, impNode, deep);
+          newNode.__proto__ = DocumentFragment.prototype;
         }
+        return newNode;
       }
       Document.prototype.importNode = importNode;
     })();
@@ -234,7 +231,7 @@
         },
         configurable: true
       });
-    }
+    };
 
     var defineOuterHTML = function defineOuterHTML(obj) {
       Object.defineProperty(obj, 'outerHTML', {
@@ -250,12 +247,12 @@
             }
             this.parentNode.replaceChild(docFrag, this);
           } else {
-            throw new Error("Failed to set the 'outerHTML' property on 'Element': This element has no parent node.")
+            throw new Error("Failed to set the 'outerHTML' property on 'Element': This element has no parent node.");
           }
         },
         configurable: true
-      })
-    }
+      });
+    };
 
     defineInnerHTML(PolyfilledHTMLTemplateElement.prototype);
     defineOuterHTML(PolyfilledHTMLTemplateElement.prototype);
@@ -278,7 +275,7 @@
 
     // Patch document.createElement to ensure newly created templates have content
     Document.prototype.createElement = function() {
-      'use strict';
+
       var el = Native_createElement.apply(this, arguments);
       if (el.localName === 'template') {
         PolyfilledHTMLTemplateElement.decorate(el);
@@ -299,11 +296,11 @@
         case '\u00A0':
           return '&nbsp;';
       }
-    }
+    };
 
     var escapeData = function escapeData(s) {
       return s.replace(escapeDataRegExp, escapeReplace);
-    }
+    };
   }
 
   // make cloning/importing work!
@@ -329,7 +326,7 @@
 
     PolyfilledHTMLTemplateElement.prototype.cloneNode = function(deep) {
       return PolyfilledHTMLTemplateElement._cloneNode(this, deep);
-    }
+    };
 
     // Given a source and cloned subtree, find <template>'s in the cloned
     // subtree and replace them with cloned <template>'s from source.
