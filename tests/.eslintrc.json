@@ -2,6 +2,9 @@
   "env": {
     "mocha": true
   },
+  "rules": {
+    "strict": "off"
+  },
   "globals": {
     "assert": true,
     "sinon": true,

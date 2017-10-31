@@ -22,17 +22,13 @@
     (function() {
 
       var Native_cloneNode = Node.prototype.cloneNode;
-      var docFragCloneNode = DocumentFragment.prototype.cloneNode = function cloneNode(deep) {
-        var newFrag = Native_cloneNode.call(this, deep);
-        if (this instanceof DocumentFragment) {
-          newFrag.__proto__ = DocumentFragment.prototype;
-        }
-        return newFrag;
-      };
-
       Node.prototype.cloneNode = function cloneNode(deep) {
         if (this instanceof DocumentFragment) {
-          return docFragCloneNode.call(this, deep);
+          var newFrag = Native_cloneNode.call(this, deep);
+          if (this instanceof DocumentFragment) {
+            newFrag.__proto__ = DocumentFragment.prototype;
+          }
+          return newFrag;
         } else {
           return Native_cloneNode.call(this, deep);
         }
@@ -113,14 +109,14 @@
       // children may have null out parentNode.
       // Just create a new DocumentFragment in this case
       var Native_importNode = Document.prototype.importNode;
-      function importNode(impNode, deep) {
+      Document.prototype.importNode = function importNode(impNode, deep) {
+        deep = deep || false;
         var newNode = Native_importNode.call(this, impNode, deep);
         if (impNode instanceof DocumentFragment) {
           newNode.__proto__ = DocumentFragment.prototype;
         }
         return newNode;
-      }
-      Document.prototype.importNode = importNode;
+      };
     })();
   }
 
@@ -378,6 +374,7 @@
     // subtree and `fixClonedDom` inserts cloned templates into this subtree,
     // thus updating the owner doc.
     Document.prototype.importNode = function(element, deep) {
+      deep = deep || false;
       if (element.localName === TEMPLATE_TAG) {
         return PolyfilledHTMLTemplateElement._cloneNode(element, deep);
       } else {

@@ -66,9 +66,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           var child = otherDoc.createElement('div');
           child.innerHTML = '<span>foo!</span>';
           frag.appendChild(child);
-          var newFrag = document.importNode(frag);
-          assert.equal(newFrag.ownerDocument, document);
-          assert.equal(newFrag.childNodes.length, 0);
+          var newFrag;
+          // Edge 14 throws NotSupportedError with importNode(docFrag, false) for some reason
+          if (!navigator.userAgent.match('Edge/14')) {
+            newFrag = document.importNode(frag, false);
+            assert.equal(newFrag.ownerDocument, document);
+            assert.equal(newFrag.childNodes.length, 0);
+          }
           newFrag = document.importNode(frag, true);
           assert.equal(newFrag.childNodes.length, 1);
           assert.equal(newFrag.childNodes[0].innerHTML, '<span>foo!</span>');
