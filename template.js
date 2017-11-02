@@ -348,7 +348,7 @@
         s = s$[i];
         t = t$[i];
         if (this.decorate) {
-          this.decorate(s);
+          PolyfilledHTMLTemplateElement.decorate(s);
         }
         capturedReplaceChild.call(t.parentNode, cloneNode.call(s, true), t);
       }
