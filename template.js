@@ -13,26 +13,105 @@
   'use strict';
 
   var needsTemplate = (typeof HTMLTemplateElement === 'undefined');
+  var brokenDocFragment = !(document.createDocumentFragment().cloneNode() instanceof DocumentFragment);
+  var needsDocFrag = false;
 
-  // NOTE: Patch document.importNode to work around IE11 bug that
-  // casues children of a document fragment imported while
-  // there is a mutation observer to not have a parentNode (!?!)
-  // It's important that this is the first patch to `importNode` so that
-  // dom produced for later patches is correct.
+  // NOTE: Replace DocumentFragment to work around IE11 bug that
+  // casues children of a document fragment modified while
+  // there is a mutation observer to not have a parentNode, or
+  // have a broken parentNode (!?!)
   if (/Trident/.test(navigator.userAgent)) {
     (function() {
-      var Native_importNode = Document.prototype.importNode;
-      Document.prototype.importNode = function() {
-        var n = Native_importNode.apply(this, arguments);
-        // Copy all children to a new document fragment since
-        // this one may be broken
-        if (n.nodeType === Node.DOCUMENT_FRAGMENT_NODE) {
-          var f = this.createDocumentFragment();
-          f.appendChild(n);
-          return f;
-        } else {
-          return n;
+
+      needsDocFrag = true;
+
+      var origCloneNode = Node.prototype.cloneNode;
+      Node.prototype.cloneNode = function cloneNode(deep) {
+        var newDom = origCloneNode.call(this, deep);
+        if (this instanceof DocumentFragment) {
+          newDom.__proto__ = DocumentFragment.prototype;
         }
+        return newDom;
+      };
+
+      // IE's DocumentFragment querySelector code doesn't work when
+      // called on an element instance
+      DocumentFragment.prototype.querySelectorAll = HTMLElement.prototype.querySelectorAll;
+      DocumentFragment.prototype.querySelector = HTMLElement.prototype.querySelector;
+
+      Object.defineProperties(DocumentFragment.prototype, {
+        'nodeType': {
+          get: function () {
+            return Node.DOCUMENT_FRAGMENT_NODE;
+          },
+          configurable: true
+        },
+
+        'localName': {
+          get: function () {
+            return undefined;
+          },
+          configurable: true
+        },
+
+        'nodeName': {
+          get: function () {
+            return '#document-fragment';
+          },
+          configurable: true
+        }
+      });
+
+      var origInsertBefore = Node.prototype.insertBefore;
+      function insertBefore(newNode, refNode) {
+        if (newNode instanceof DocumentFragment) {
+          var child;
+          while ((child = newNode.firstChild)) {
+            origInsertBefore.call(this, child, refNode);
+          }
+        } else {
+          origInsertBefore.call(this, newNode, refNode);
+        }
+        return newNode;
+      }
+      Node.prototype.insertBefore = insertBefore;
+
+      var origAppendChild = Node.prototype.appendChild;
+      Node.prototype.appendChild = function appendChild(child) {
+        if (child instanceof DocumentFragment) {
+          insertBefore.call(this, child, null);
+        } else {
+          origAppendChild.call(this, child);
+        }
+        return child;
+      };
+
+      var origRemoveChild = Node.prototype.removeChild;
+      var origReplaceChild = Node.prototype.replaceChild;
+      Node.prototype.replaceChild = function replaceChild(newChild, oldChild) {
+        if (newChild instanceof DocumentFragment) {
+          insertBefore.call(this, newChild, oldChild);
+          origRemoveChild.call(this, oldChild);
+        } else {
+          origReplaceChild.call(this, newChild, oldChild);
+        }
+        return oldChild;
+      };
+
+      Document.prototype.createDocumentFragment = function createDocumentFragment() {
+        var frag = this.createElement('df');
+        frag.__proto__ = DocumentFragment.prototype;
+        return frag;
+      };
+
+      var origImportNode = Document.prototype.importNode;
+      Document.prototype.importNode = function importNode(impNode, deep) {
+        deep = deep || false;
+        var newNode = origImportNode.call(this, impNode, deep);
+        if (impNode instanceof DocumentFragment) {
+          newNode.__proto__ = DocumentFragment.prototype;
+        }
+        return newNode;
       };
     })();
   }
@@ -41,9 +120,27 @@
   // This means this polyfill must load before the CE polyfill and
   // this would need to be re-worked if a browser supports native CE
   // but not <template>.
-  var Native_cloneNode = Node.prototype.cloneNode;
-  var Native_createElement = Document.prototype.createElement;
-  var Native_importNode = Document.prototype.importNode;
+  var capturedCloneNode = Node.prototype.cloneNode;
+  var capturedCreateElement = Document.prototype.createElement;
+  var capturedImportNode = Document.prototype.importNode;
+  var capturedRemoveChild = Node.prototype.removeChild;
+  var capturedAppendChild = Node.prototype.appendChild;
+  var capturedReplaceChild = Node.prototype.replaceChild;
+
+  var elementQuerySelectorAll = Element.prototype.querySelectorAll;
+  var docQuerySelectorAll = Document.prototype.querySelectorAll;
+  var fragQuerySelectorAll = DocumentFragment.prototype.querySelectorAll;
+
+  function QSA(node, selector) {
+    switch (node.nodeType) {
+      case Node.DOCUMENT_NODE:
+        return docQuerySelectorAll.call(node, selector);
+      case Node.DOCUMENT_FRAGMENT_NODE:
+        return fragQuerySelectorAll.call(node, selector);
+      default:
+        return elementQuerySelectorAll.call(node, selector);
+    }
+  }
 
   // returns true if nested templates cannot be cloned (they cannot be on
   // some impl's like Safari 8 and Edge)
@@ -56,7 +153,7 @@
       t.content.appendChild(t2);
       var clone = t.cloneNode(true);
       return (clone.content.childNodes.length === 0 || clone.content.firstChild.content.childNodes.length === 0
-        || !(document.createDocumentFragment().cloneNode() instanceof DocumentFragment));
+        || brokenDocFragment);
     }
   })();
 
@@ -97,7 +194,7 @@
       template.content = contentDoc.createDocumentFragment();
       var child;
       while ((child = template.firstChild)) {
-        template.content.appendChild(child);
+        capturedAppendChild.call(template.content, child);
       }
       // NOTE: prefer prototype patching for performance and
       // because on some browsers (IE11), re-defining `innerHTML`
@@ -136,36 +233,36 @@
           contentDoc.body.innerHTML = text;
           PolyfilledHTMLTemplateElement.bootstrap(contentDoc);
           while (this.content.firstChild) {
-            this.content.removeChild(this.content.firstChild);
+            capturedRemoveChild.call(this.content, this.content.firstChild);
           }
           while (contentDoc.body.firstChild) {
-            this.content.appendChild(contentDoc.body.firstChild);
+            capturedAppendChild.call(this.content, contentDoc.body.firstChild);
           }
         },
         configurable: true
       });
-    }
+    };
 
     var defineOuterHTML = function defineOuterHTML(obj) {
       Object.defineProperty(obj, 'outerHTML', {
         get: function() {
-          return '<template>' + this.innerHTML + '</template>';
+          return '<' + TEMPLATE_TAG + '>' + this.innerHTML + '</' + TEMPLATE_TAG + '>';
         },
         set: function(innerHTML) {
           if (this.parentNode) {
             contentDoc.body.innerHTML = innerHTML;
-            var docFrag = document.createDocumentFragment();
+            var docFrag = this.ownerDocument.createDocumentFragment();
             while (contentDoc.body.firstChild) {
-              docFrag.appendChild(contentDoc.body.firstChild);
+              capturedAppendChild.call(docFrag, contentDoc.body.firstChild);
             }
-            this.parentNode.replaceChild(docFrag, this);
+            capturedReplaceChild.call(this.parentNode, docFrag, this);
           } else {
-            throw new Error("Failed to set the 'outerHTML' property on 'Element': This element has no parent node.")
+            throw new Error("Failed to set the 'outerHTML' property on 'Element': This element has no parent node.");
           }
         },
         configurable: true
-      })
-    }
+      });
+    };
 
     defineInnerHTML(PolyfilledHTMLTemplateElement.prototype);
     defineOuterHTML(PolyfilledHTMLTemplateElement.prototype);
@@ -174,8 +271,8 @@
       The `bootstrap` method is called automatically and "fixes" all
       <template> elements in the document referenced by the `doc` argument.
     */
-    PolyfilledHTMLTemplateElement.bootstrap = function(doc) {
-      var templates = doc.querySelectorAll(TEMPLATE_TAG);
+    PolyfilledHTMLTemplateElement.bootstrap = function bootstrap(doc) {
+      var templates = QSA(doc, TEMPLATE_TAG);
       for (var i=0, l=templates.length, t; (i<l) && (t=templates[i]); i++) {
         PolyfilledHTMLTemplateElement.decorate(t);
       }
@@ -187,9 +284,8 @@
     });
 
     // Patch document.createElement to ensure newly created templates have content
-    Document.prototype.createElement = function() {
-      'use strict';
-      var el = Native_createElement.apply(this, arguments);
+    Document.prototype.createElement = function createElement() {
+      var el = capturedCreateElement.apply(this, arguments);
       if (el.localName === 'template') {
         PolyfilledHTMLTemplateElement.decorate(el);
       }
@@ -209,18 +305,18 @@
         case '\u00A0':
           return '&nbsp;';
       }
-    }
+    };
 
     var escapeData = function escapeData(s) {
       return s.replace(escapeDataRegExp, escapeReplace);
-    }
+    };
   }
 
   // make cloning/importing work!
   if (needsTemplate || needsCloning) {
 
-    PolyfilledHTMLTemplateElement._cloneNode = function(template, deep) {
-      var clone = Native_cloneNode.call(template, false);
+    PolyfilledHTMLTemplateElement._cloneNode = function _cloneNode(template, deep) {
+      var clone = capturedCloneNode.call(template, false);
       // NOTE: decorate doesn't auto-fix children because they are already
       // decorated so they need special clone fixup.
       if (this.decorate) {
@@ -229,55 +325,55 @@
       if (deep) {
         // NOTE: use native clone node to make sure CE's wrapped
         // cloneNode does not cause elements to upgrade.
-        clone.content.appendChild(
-            Native_cloneNode.call(template.content, true));
+        capturedAppendChild.call(clone.content, capturedCloneNode.call(template.content, true));
         // now ensure nested templates are cloned correctly.
-        this.fixClonedDom(clone.content, template.content);
+        fixClonedDom(clone.content, template.content);
       }
       return clone;
     };
 
-    PolyfilledHTMLTemplateElement.prototype.cloneNode = function(deep) {
-      return PolyfilledHTMLTemplateElement._cloneNode(this, deep);
-    }
-
     // Given a source and cloned subtree, find <template>'s in the cloned
     // subtree and replace them with cloned <template>'s from source.
     // We must do this because only the source templates have proper .content.
-    PolyfilledHTMLTemplateElement.fixClonedDom = function(clone, source) {
+    var fixClonedDom = function fixClonedDom(clone, source) {
       // do nothing if cloned node is not an element
       if (!source.querySelectorAll) return;
       // these two lists should be coincident
-      var s$ = source.querySelectorAll(TEMPLATE_TAG);
-      var t$ = clone.querySelectorAll(TEMPLATE_TAG);
+      var s$ = QSA(source, TEMPLATE_TAG);
+      if (s$.length === 0) {
+        return;
+      }
+      var t$ = QSA(clone, TEMPLATE_TAG);
       for (var i=0, l=t$.length, t, s; i<l; i++) {
         s = s$[i];
         t = t$[i];
-        if (this.decorate) {
-          this.decorate(s);
+        if (PolyfilledHTMLTemplateElement && PolyfilledHTMLTemplateElement.decorate) {
+          PolyfilledHTMLTemplateElement.decorate(s);
         }
-        t.parentNode.replaceChild(s.cloneNode(true), t);
+        capturedReplaceChild.call(t.parentNode, cloneNode.call(s, true), t);
       }
     };
 
     // override all cloning to fix the cloned subtree to contain properly
     // cloned templates.
-    Node.prototype.cloneNode = function(deep) {
+    var cloneNode = Node.prototype.cloneNode = function cloneNode(deep) {
       var dom;
       // workaround for Edge bug cloning documentFragments
       // https://developer.microsoft.com/en-us/microsoft-edge/platform/issues/8619646/
-      if (this instanceof DocumentFragment) {
+      if (!needsDocFrag && brokenDocFragment && this instanceof DocumentFragment) {
         if (!deep) {
           return this.ownerDocument.createDocumentFragment();
         } else {
-          dom = this.ownerDocument.importNode(this, true);
+          dom = importNode.call(this.ownerDocument, this, true);
         }
+      } else if (this.nodeType === Node.ELEMENT_NODE && this.localName === TEMPLATE_TAG) {
+        dom = PolyfilledHTMLTemplateElement._cloneNode(this, deep);
       } else {
-        dom = Native_cloneNode.call(this, deep);
+        dom = capturedCloneNode.call(this, deep);
       }
       // template.content is cloned iff `deep`.
       if (deep) {
-        PolyfilledHTMLTemplateElement.fixClonedDom(dom, this);
+        fixClonedDom(dom, this);
       }
       return dom;
     };
@@ -287,23 +383,18 @@
     // This is because the native import node creates the right document owned
     // subtree and `fixClonedDom` inserts cloned templates into this subtree,
     // thus updating the owner doc.
-    Document.prototype.importNode = function(element, deep) {
+    var importNode = Document.prototype.importNode = function importNode(element, deep) {
+      deep = deep || false;
       if (element.localName === TEMPLATE_TAG) {
         return PolyfilledHTMLTemplateElement._cloneNode(element, deep);
       } else {
-        var dom = Native_importNode.call(this, element, deep);
+        var dom = capturedImportNode.call(this, element, deep);
         if (deep) {
-          PolyfilledHTMLTemplateElement.fixClonedDom(dom, element);
+          fixClonedDom(dom, element);
         }
         return dom;
       }
     };
-
-    if (needsCloning) {
-      window.HTMLTemplateElement.prototype.cloneNode = function(deep) {
-        return PolyfilledHTMLTemplateElement._cloneNode(this, deep);
-      };
-    }
   }
 
   if (needsTemplate) {

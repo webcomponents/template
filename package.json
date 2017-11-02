@@ -16,12 +16,13 @@
     "url": "https://github.com/webcomponents/template/issues"
   },
   "scripts": {
-    "test": "wct",
-    "lint": "eslint template.js"
+    "test": "npm run lint && wct",
+    "lint": "eslint template.js test/**/*.html"
   },
   "homepage": "http://webcomponents.org",
   "devDependencies": {
     "eslint": "^4.8.0",
+    "eslint-plugin-html": "^3.2.2",
     "web-component-tester": "^6.3.0"
   },
   "publishConfig": {
