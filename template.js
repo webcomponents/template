@@ -347,7 +347,9 @@
       for (var i=0, l=t$.length, t, s; i<l; i++) {
         s = s$[i];
         t = t$[i];
-        PolyfilledHTMLTemplateElement.decorate(s);
+        if (PolyfilledHTMLTemplateElement) {
+          PolyfilledHTMLTemplateElement.decorate(s);
+        }
         capturedReplaceChild.call(t.parentNode, cloneNode.call(s, true), t);
       }
     };
