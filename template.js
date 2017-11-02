@@ -27,15 +27,11 @@
 
       var origCloneNode = Node.prototype.cloneNode;
       Node.prototype.cloneNode = function cloneNode(deep) {
+        var newDom = origCloneNode.call(this, deep);
         if (this instanceof DocumentFragment) {
-          var newFrag = origCloneNode.call(this, deep);
-          if (this instanceof DocumentFragment) {
-            newFrag.__proto__ = DocumentFragment.prototype;
-          }
-          return newFrag;
-        } else {
-          return origCloneNode.call(this, deep);
+          newDom.__proto__ = DocumentFragment.prototype;
         }
+        return newDom;
       };
 
       // IE's DocumentFragment querySelector code doesn't work when
@@ -331,7 +327,7 @@
         // cloneNode does not cause elements to upgrade.
         capturedAppendChild.call(clone.content, capturedCloneNode.call(template.content, true));
         // now ensure nested templates are cloned correctly.
-        this._fixClonedDom(clone.content, template.content);
+        fixClonedDom(clone.content, template.content);
       }
       return clone;
     };
@@ -339,7 +335,7 @@
     // Given a source and cloned subtree, find <template>'s in the cloned
     // subtree and replace them with cloned <template>'s from source.
     // We must do this because only the source templates have proper .content.
-    PolyfilledHTMLTemplateElement._fixClonedDom = function _fixClonedDom(clone, source) {
+    var fixClonedDom = function fixClonedDom(clone, source) {
       // do nothing if cloned node is not an element
       if (!source.querySelectorAll) return;
       // these two lists should be coincident
@@ -377,7 +373,7 @@
       }
       // template.content is cloned iff `deep`.
       if (deep) {
-        PolyfilledHTMLTemplateElement._fixClonedDom(dom, this);
+        fixClonedDom(dom, this);
       }
       return dom;
     };
@@ -394,7 +390,7 @@
       } else {
         var dom = capturedImportNode.call(this, element, deep);
         if (deep) {
-          PolyfilledHTMLTemplateElement._fixClonedDom(dom, element);
+          fixClonedDom(dom, element);
         }
         return dom;
       }
