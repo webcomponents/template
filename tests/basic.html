@@ -184,7 +184,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         test('importNode', function() {
           var imp = document.createElement('template');
           var s = '<div>Hi</div>';
-          setupTemplate(imp, s)
+          setupTemplate(imp, s);
           var clone = document.importNode(imp, false);
           assert.notEqual(clone, imp, 'element is not cloned');
           assert.isDefined(clone.content, 'cloned template content dne');
@@ -276,6 +276,17 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           assert.equal(t.parentNode, null);
           var replaced = document.body.lastElementChild;
           assert.equal(replaced.outerHTML, '<div>replaced</div>');
+        });
+
+        test('scripts added to template execute when stamped', function() {
+          var t = document.createElement('template');
+          var script = document.createElement('script');
+          script.textContent = 'window.executedTemplateScript=true';
+          t.content.appendChild(script);
+
+          document.body.appendChild(document.importNode(t.content, true));
+
+          assert.isDefined(window.executedTemplateScript, 'script should have executed but did not');
         });
 
       });

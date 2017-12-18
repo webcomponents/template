@@ -131,6 +131,8 @@
   var docQuerySelectorAll = Document.prototype.querySelectorAll;
   var fragQuerySelectorAll = DocumentFragment.prototype.querySelectorAll;
 
+  var scriptSelector = 'script:not([type]),script[type="application/javascript"],script[type="text/javascript"]';
+
   function QSA(node, selector) {
     switch (node.nodeType) {
       case Node.DOCUMENT_NODE:
@@ -354,6 +356,22 @@
       }
     };
 
+    // make sure scripts inside of a cloned template are executable
+    var fixClonedScripts = function fixClonedScripts(fragment) {
+      var scripts = QSA(fragment, scriptSelector);
+      for (var ns, s, i = 0; i < scripts.length; i++) {
+        s = scripts[i];
+        ns = capturedCreateElement.call(document, 'script');
+        ns.textContent = s.textContent;
+        var attrs = s.attributes;
+        for (var ai = 0, a; ai < attrs.length; ai++) {
+          a = attrs[ai];
+          ns.setAttribute(a.name, a.value);
+        }
+        capturedReplaceChild.call(s.parentNode, ns, s);
+      }
+    };
+
     // override all cloning to fix the cloned subtree to contain properly
     // cloned templates.
     var cloneNode = Node.prototype.cloneNode = function cloneNode(deep) {
@@ -391,6 +409,7 @@
         var dom = capturedImportNode.call(this, element, deep);
         if (deep) {
           fixClonedDom(dom, element);
+          fixClonedScripts(dom);
         }
         return dom;
       }
