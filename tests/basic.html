@@ -280,11 +280,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
         test('scripts added to template execute when stamped', function() {
           var t = document.createElement('template');
-          t.innerHTML = '<script>window.executedTemplateScript=true</scr' + 'ipt>';
+          var script = document.createElement('script');
+          script.textContent = 'window.executedTemplateScript=true';
+          t.content.appendChild(script);
 
           document.body.appendChild(document.importNode(t.content, true));
 
-          assert.isDefined(window.executedTemplateScript);
+          assert.isDefined(window.executedTemplateScript, 'script should have executed but did not');
         });
 
       });
