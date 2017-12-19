@@ -134,6 +134,10 @@
   var scriptSelector = 'script:not([type]),script[type="application/javascript"],script[type="text/javascript"]';
 
   function QSA(node, selector) {
+    // IE 11 throws a SyntaxError with `scriptSelector` if the node has no children due to the `:not([type])` syntax
+    if (!node.childNodes.length) {
+      return [];
+    }
     switch (node.nodeType) {
       case Node.DOCUMENT_NODE:
         return docQuerySelectorAll.call(node, selector);
