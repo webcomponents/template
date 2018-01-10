@@ -17,7 +17,7 @@
   var needsDocFrag = false;
 
   // NOTE: Replace DocumentFragment to work around IE11 bug that
-  // casues children of a document fragment modified while
+  // causes children of a document fragment modified while
   // there is a mutation observer to not have a parentNode, or
   // have a broken parentNode (!?!)
   if (/Trident/.test(navigator.userAgent)) {
