@@ -21,9 +21,9 @@
   },
   "homepage": "http://webcomponents.org",
   "devDependencies": {
-    "eslint": "^4.8.0",
-    "eslint-plugin-html": "^3.2.2",
-    "web-component-tester": "^6.3.0"
+    "eslint": "^4.19.0",
+    "eslint-plugin-html": "^4.0.2",
+    "web-component-tester": "^6.5.0"
   },
   "publishConfig": {
     "access": "public"

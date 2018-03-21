@@ -2,5 +2,14 @@
   "suites": ["tests/runner.html"],
   "clientOptions": {
     "environmentImports": []
+  },
+  "plugins": {
+    "local": {
+      "browserOptions": {
+        "chrome": [
+          "no-sandbox"
+        ]
+      }
+    }
   }
 }

@@ -229,11 +229,7 @@
     var defineInnerHTML = function defineInnerHTML(obj) {
       Object.defineProperty(obj, 'innerHTML', {
         get: function() {
-          var o = '';
-          for (var e = this.content.firstChild; e; e = e.nextSibling) {
-            o += e.outerHTML || escapeData(e.data);
-          }
-          return o;
+          return getInnerHTML(this);
         },
         set: function(text) {
           contentDoc.body.innerHTML = text;
@@ -298,9 +294,11 @@
       return el;
     };
 
+    // http://www.whatwg.org/specs/web-apps/current-work/multipage/the-end.html#escapingString
+    var escapeAttrRegExp = /[&\u00A0"]/g;
     var escapeDataRegExp = /[&\u00A0<>]/g;
 
-    var escapeReplace = function escapeReplace(c) {
+    var escapeReplace = function(c) {
       switch (c) {
         case '&':
           return '&amp;';
@@ -308,14 +306,113 @@
           return '&lt;';
         case '>':
           return '&gt;';
+        case '"':
+          return '&quot;';
         case '\u00A0':
           return '&nbsp;';
       }
     };
 
-    var escapeData = function escapeData(s) {
+    var escapeAttr = function(s) {
+      return s.replace(escapeAttrRegExp, escapeReplace);
+    };
+
+    var escapeData = function(s) {
       return s.replace(escapeDataRegExp, escapeReplace);
     };
+
+    var makeSet = function(arr) {
+      var set = {};
+      for (var i = 0; i < arr.length; i++) {
+        set[arr[i]] = true;
+      }
+      return set;
+    };
+
+    // http://www.whatwg.org/specs/web-apps/current-work/#void-elements
+    var voidElements = makeSet([
+      'area',
+      'base',
+      'br',
+      'col',
+      'command',
+      'embed',
+      'hr',
+      'img',
+      'input',
+      'keygen',
+      'link',
+      'meta',
+      'param',
+      'source',
+      'track',
+      'wbr'
+    ]);
+
+    var plaintextParents = makeSet([
+      'style',
+      'script',
+      'xmp',
+      'iframe',
+      'noembed',
+      'noframes',
+      'plaintext',
+      'noscript'
+    ]);
+
+    /**
+     * @param {Node} node
+     * @param {Node} parentNode
+     * @param {Function=} callback
+     */
+    var getOuterHTML = function(node, parentNode, callback) {
+      switch (node.nodeType) {
+        case Node.ELEMENT_NODE: {
+          var tagName = node.localName;
+          var s = '<' + tagName;
+          var attrs = node.attributes;
+          for (var i = 0, attr; (attr = attrs[i]); i++) {
+            s += ' ' + attr.name + '="' + escapeAttr(attr.value) + '"';
+          }
+          s += '>';
+          if (voidElements[tagName]) {
+            return s;
+          }
+          return s + getInnerHTML(node, callback) + '</' + tagName + '>';
+        }
+        case Node.TEXT_NODE: {
+          var data = /** @type {Text} */ (node).data;
+          if (parentNode && plaintextParents[parentNode.localName]) {
+            return data;
+          }
+          return escapeData(data);
+        }
+        case Node.COMMENT_NODE: {
+          return '<!--' + /** @type {Comment} */ (node).data + '-->';
+        }
+        default: {
+          window.console.error(node);
+          throw new Error('not implemented');
+        }
+      }
+    };
+
+    /**
+     * @param {Node} node
+     * @param {Function=} callback
+     */
+    var getInnerHTML = function(node, callback) {
+      if (node.localName === 'template') {
+        node =  /** @type {HTMLTemplateElement} */ (node).content;
+      }
+      var s = '';
+      var c$ = callback ? callback(node) : node.childNodes;
+      for (var i=0, l=c$.length, child; (i<l) && (child=c$[i]); i++) {
+        s += getOuterHTML(child, node, callback);
+      }
+      return s;
+    };
+
   }
 
   // make cloning/importing work!
