@@ -295,8 +295,8 @@
     };
 
     // http://www.whatwg.org/specs/web-apps/current-work/multipage/the-end.html#escapingString
-    let escapeAttrRegExp = /[&\u00A0"]/g;
-    let escapeDataRegExp = /[&\u00A0<>]/g;
+    var escapeAttrRegExp = /[&\u00A0"]/g;
+    var escapeDataRegExp = /[&\u00A0<>]/g;
 
     function escapeReplace(c) {
       switch (c) {
@@ -322,15 +322,15 @@
     }
 
     function makeSet(arr) {
-      let set = {};
-      for (let i = 0; i < arr.length; i++) {
+      var set = {};
+      for (var i = 0; i < arr.length; i++) {
         set[arr[i]] = true;
       }
       return set;
     }
 
     // http://www.whatwg.org/specs/web-apps/current-work/#void-elements
-    let voidElements = makeSet([
+    var voidElements = makeSet([
       'area',
       'base',
       'br',
@@ -349,7 +349,7 @@
       'wbr'
     ]);
 
-    let plaintextParents = makeSet([
+    var plaintextParents = makeSet([
       'style',
       'script',
       'xmp',
@@ -368,10 +368,10 @@
     function getOuterHTML(node, parentNode, callback) {
       switch (node.nodeType) {
         case Node.ELEMENT_NODE: {
-          let tagName = node.localName;
-          let s = '<' + tagName;
-          let attrs = node.attributes;
-          for (let i = 0, attr; (attr = attrs[i]); i++) {
+          var tagName = node.localName;
+          var s = '<' + tagName;
+          var attrs = node.attributes;
+          for (var i = 0, attr; (attr = attrs[i]); i++) {
             s += ' ' + attr.name + '="' + escapeAttr(attr.value) + '"';
           }
           s += '>';
@@ -381,7 +381,7 @@
           return s + getInnerHTML(node, callback) + '</' + tagName + '>';
         }
         case Node.TEXT_NODE: {
-          let data = /** @type {Text} */ (node).data;
+          var data = /** @type {Text} */ (node).data;
           if (parentNode && plaintextParents[parentNode.localName]) {
             return data;
           }
@@ -405,9 +405,9 @@
       if (node.localName === 'template') {
         node =  /** @type {HTMLTemplateElement} */ (node).content;
       }
-      let s = '';
-      let c$ = callback ? callback(node) : node.childNodes;
-      for (let i=0, l=c$.length, child; (i<l) && (child=c$[i]); i++) {
+      var s = '';
+      var c$ = callback ? callback(node) : node.childNodes;
+      for (var i=0, l=c$.length, child; (i<l) && (child=c$[i]); i++) {
         s += getOuterHTML(child, node, callback);
       }
       return s;
