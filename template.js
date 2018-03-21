@@ -298,7 +298,7 @@
     var escapeAttrRegExp = /[&\u00A0"]/g;
     var escapeDataRegExp = /[&\u00A0<>]/g;
 
-    function escapeReplace(c) {
+    var escapeReplace = function(c) {
       switch (c) {
         case '&':
           return '&amp;';
@@ -311,23 +311,23 @@
         case '\u00A0':
           return '&nbsp;';
       }
-    }
+    };
 
-    function escapeAttr(s) {
+    var escapeAttr = function(s) {
       return s.replace(escapeAttrRegExp, escapeReplace);
-    }
+    };
 
-    function escapeData(s) {
+    var escapeData = function(s) {
       return s.replace(escapeDataRegExp, escapeReplace);
-    }
+    };
 
-    function makeSet(arr) {
+    var makeSet = function(arr) {
       var set = {};
       for (var i = 0; i < arr.length; i++) {
         set[arr[i]] = true;
       }
       return set;
-    }
+    };
 
     // http://www.whatwg.org/specs/web-apps/current-work/#void-elements
     var voidElements = makeSet([
@@ -365,7 +365,7 @@
      * @param {Node} parentNode
      * @param {Function=} callback
      */
-    function getOuterHTML(node, parentNode, callback) {
+    var getOuterHTML = function(node, parentNode, callback) {
       switch (node.nodeType) {
         case Node.ELEMENT_NODE: {
           var tagName = node.localName;
@@ -395,13 +395,13 @@
           throw new Error('not implemented');
         }
       }
-    }
+    };
 
     /**
      * @param {Node} node
      * @param {Function=} callback
      */
-    function getInnerHTML(node, callback) {
+    var getInnerHTML = function(node, callback) {
       if (node.localName === 'template') {
         node =  /** @type {HTMLTemplateElement} */ (node).content;
       }
@@ -411,7 +411,7 @@
         s += getOuterHTML(child, node, callback);
       }
       return s;
-    }
+    };
 
   }
 
