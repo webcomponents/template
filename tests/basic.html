@@ -130,7 +130,18 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           var s = '<!-- This is a comment -->';
           imp.innerHTML = s;
           assert.equal(imp.innerHTML, s);
-        })
+        });
+
+        test('innerHTML (table elements)', function() {
+          if (!canInnerHTML) {
+            this.skip();
+          }
+          var imp = document.createElement('template');
+          assert.equal(imp.innerHTML, '');
+          var s = '<tr><td class="record"></td><td></td><td><span class="extra">nothing</span></td></tr>';
+          imp.innerHTML = s;
+          assert.equal(imp.innerHTML, s);
+        });
 
         test('clone', function() {
           var imp = document.createElement('template');
