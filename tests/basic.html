@@ -305,6 +305,45 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           document.importNode(t.content, true);
         });
 
+        test('can work with nested templates in a svg context (importNode)', function() {
+          var svgNamespace = 'http://www.w3.org/2000/svg';
+          var doc = document.implementation.createHTMLDocument('');
+          var imp = doc.createElement('div');
+          var t = document.createElement('template');
+          t.innerHTML = '<svg><template><circle cx="150" cy="150" r="100" fill="blue" /></template></svg>'
+          imp.appendChild(t);
+
+          var impClone = document.importNode(imp, true);
+          imp = imp.firstChild;
+          var deepClone = impClone.firstChild;
+
+          var svg = deepClone.content.firstChild;
+          assert.equal(svg.namespaceURI, svgNamespace);
+
+          var svgTemplate = svg.firstChild;
+          assert.equal(svgTemplate.namespaceURI, svgNamespace);
+          assert.equal(svgTemplate.firstChild.namespaceURI, svgNamespace);
+        });
+
+        test('can work with nested templates in a svg context (cloneNode)', function() {
+          var svgNamespace = 'http://www.w3.org/2000/svg';
+          var doc = document.implementation.createHTMLDocument('');
+          var imp = doc.createElement('div');
+          var t = document.createElement('template');
+          t.innerHTML = '<svg><template><circle cx="150" cy="150" r="100" fill="blue" /></template></svg>'
+          imp.appendChild(t);
+
+          var impClone = imp.cloneNode(true);
+          imp = imp.firstChild;
+          var deepClone = impClone.firstChild;
+
+          var svg = deepClone.content.firstChild;
+          assert.equal(svg.namespaceURI, svgNamespace);
+
+          var svgTemplate = svg.firstChild;
+          assert.equal(svgTemplate.namespaceURI, svgNamespace);
+          assert.equal(svgTemplate.firstChild.namespaceURI, svgNamespace);
+        });
       });
     </script>
   </body>
