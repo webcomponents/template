@@ -193,8 +193,9 @@
       NOTE: there is no support for dynamically adding elements to templates.
     */
     PolyfilledHTMLTemplateElement.decorate = function(template) {
-      // if the template is decorated, return fast
-      if (template.content) {
+      // if the template is decorated or not in HTML namespace, return fast
+      if (template.content || 
+          template.namespaceURI !== document.documentElement.namespaceURI) {
         return;
       }
       template.content = contentDoc.createDocumentFragment();
@@ -485,7 +486,9 @@
         } else {
           dom = importNode.call(this.ownerDocument, this, true);
         }
-      } else if (this.nodeType === Node.ELEMENT_NODE && this.localName === TEMPLATE_TAG) {
+      } else if (this.nodeType === Node.ELEMENT_NODE && 
+                 this.localName === TEMPLATE_TAG &&
+                 this.namespaceURI == document.documentElement.namespaceURI) {
         dom = PolyfilledHTMLTemplateElement._cloneNode(this, deep);
       } else {
         dom = capturedCloneNode.call(this, deep);
