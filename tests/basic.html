@@ -165,6 +165,29 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           assert.equal(imp.innerHTML, s);
         });
 
+        test('innerHTML (col element)', function() {
+          if (!canInnerHTML) {
+            this.skip();
+          }
+          var imp = document.createElement('template');
+          assert.equal(imp.innerHTML, '');
+          var s = '<col style="background-color: rgb(0, 0, 0);"><col span="2">';
+          imp.innerHTML = s;
+          assert.equal(imp.innerHTML, s);
+        });
+
+        test('innerHTML (thead element)', function() {
+          if (!canInnerHTML) {
+            this.skip();
+          }
+          var imp = document.createElement('template');
+          assert.equal(imp.innerHTML, '');
+          var s = '<thead><tr><th>Header content 1</th><th>Header content 2</th></tr></thead>';
+          imp.innerHTML = s;
+          assert.equal(imp.innerHTML, s);
+        });
+
+
         test('clone', function() {
           var imp = document.createElement('template');
           var s = '<div>Hi</div>';
