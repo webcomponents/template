@@ -187,6 +187,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           assert.equal(imp.innerHTML, s);
         });
 
+        test('innerHTML (option element)', function() {
+          if (!canInnerHTML) {
+            this.skip();
+          }
+          var imp = document.createElement('template');
+          assert.equal(imp.innerHTML, '');
+          var s = '<option value="one">One</option><option value="two">two</option>';
+          imp.innerHTML = s;
+          assert.equal(imp.innerHTML, s);
+        });
 
         test('clone', function() {
           var imp = document.createElement('template');

@@ -229,6 +229,7 @@
 
     // Taken from https://github.com/jquery/jquery/blob/73d7e6259c63ac45f42c6593da8c2796c6ce9281/src/manipulation/wrapMap.js
     var topLevelWrappingMap = {
+      option: ['select'],
       thead: ['table'],
       col: ['colgroup', 'table'],
       tr: ['tbody', 'table'],
