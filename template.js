@@ -194,7 +194,7 @@
     */
     PolyfilledHTMLTemplateElement.decorate = function(template) {
       // if the template is decorated or not in HTML namespace, return fast
-      if (template.content || 
+      if (template.content ||
           template.namespaceURI !== document.documentElement.namespaceURI) {
         return;
       }
@@ -227,19 +227,48 @@
       PolyfilledHTMLTemplateElement.bootstrap(template.content);
     };
 
+    // Taken from https://github.com/jquery/jquery/blob/73d7e6259c63ac45f42c6593da8c2796c6ce9281/src/manipulation/wrapMap.js
+    var topLevelWrappingMap = {
+      'option': ['select'],
+      'thead': ['table'],
+      'col': ['colgroup', 'table'],
+      'tr': ['tbody', 'table'],
+      'th': ['tr', 'tbody', 'table'],
+      'td': ['tr', 'tbody', 'table']
+    };
+
+    var getTagName = function(text) {
+      // Taken from https://github.com/jquery/jquery/blob/73d7e6259c63ac45f42c6593da8c2796c6ce9281/src/manipulation/var/rtagName.js
+      return ( /<([a-z][^/\0>\x20\t\r\n\f]+)/i.exec(text) || ['', ''])[1].toLowerCase();
+    };
+
     var defineInnerHTML = function defineInnerHTML(obj) {
       Object.defineProperty(obj, 'innerHTML', {
         get: function() {
           return getInnerHTML(this);
         },
         set: function(text) {
+          // For IE11, wrap the text in the correct (table) context
+          var wrap = topLevelWrappingMap[getTagName(text)];
+          if (wrap) {
+            for (var i = 0; i < wrap.length; i++) {
+              text = '<' + wrap[i] + '>' + text + '</' + wrap[i] + '>';
+            }
+          }
           contentDoc.body.innerHTML = text;
           PolyfilledHTMLTemplateElement.bootstrap(contentDoc);
           while (this.content.firstChild) {
             capturedRemoveChild.call(this.content, this.content.firstChild);
           }
-          while (contentDoc.body.firstChild) {
-            capturedAppendChild.call(this.content, contentDoc.body.firstChild);
+          var body = contentDoc.body;
+          // If we had wrapped, get back to the original node
+          if (wrap) {
+            for (var j = 0; j < wrap.length; j++) {
+              body = body.lastChild;
+            }
+          }
+          while (body.firstChild) {
+            capturedAppendChild.call(this.content, body.firstChild);
           }
         },
         configurable: true
@@ -486,7 +515,7 @@
         } else {
           dom = importNode.call(this.ownerDocument, this, true);
         }
-      } else if (this.nodeType === Node.ELEMENT_NODE && 
+      } else if (this.nodeType === Node.ELEMENT_NODE &&
                  this.localName === TEMPLATE_TAG &&
                  this.namespaceURI == document.documentElement.namespaceURI) {
         dom = PolyfilledHTMLTemplateElement._cloneNode(this, deep);

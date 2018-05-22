@@ -132,15 +132,68 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           assert.equal(imp.innerHTML, s);
         });
 
-        // Not yet working, as the setter of `innerHTML` moves the table elements
-        // into a non-table context, which are removed by the parser
-        test.skip('innerHTML (table elements)', function() {
+        test('innerHTML (tr element)', function() {
           if (!canInnerHTML) {
             this.skip();
           }
           var imp = document.createElement('template');
           assert.equal(imp.innerHTML, '');
           var s = '<tr><td class="record"></td><td></td><td><span class="extra">nothing</span></td></tr>';
+          imp.innerHTML = s;
+          assert.equal(imp.innerHTML, s);
+        });
+
+        test('innerHTML (td element)', function() {
+          if (!canInnerHTML) {
+            this.skip();
+          }
+          var imp = document.createElement('template');
+          assert.equal(imp.innerHTML, '');
+          var s = '<td class="record"><span class="extra">nothing</span></td>';
+          imp.innerHTML = s;
+          assert.equal(imp.innerHTML, s);
+        });
+
+        test('innerHTML (th element)', function() {
+          if (!canInnerHTML) {
+            this.skip();
+          }
+          var imp = document.createElement('template');
+          assert.equal(imp.innerHTML, '');
+          var s = '<th class="record"><span class="extra">nothing</span></th>';
+          imp.innerHTML = s;
+          assert.equal(imp.innerHTML, s);
+        });
+
+        test('innerHTML (col element)', function() {
+          if (!canInnerHTML) {
+            this.skip();
+          }
+          var imp = document.createElement('template');
+          assert.equal(imp.innerHTML, '');
+          var s = '<col style="background-color: rgb(0, 0, 0);"><col span="2">';
+          imp.innerHTML = s;
+          assert.equal(imp.innerHTML, s);
+        });
+
+        test('innerHTML (thead element)', function() {
+          if (!canInnerHTML) {
+            this.skip();
+          }
+          var imp = document.createElement('template');
+          assert.equal(imp.innerHTML, '');
+          var s = '<thead><tr><th>Header content 1</th><th>Header content 2</th></tr></thead>';
+          imp.innerHTML = s;
+          assert.equal(imp.innerHTML, s);
+        });
+
+        test('innerHTML (option element)', function() {
+          if (!canInnerHTML) {
+            this.skip();
+          }
+          var imp = document.createElement('template');
+          assert.equal(imp.innerHTML, '');
+          var s = '<option value="one">One</option><option value="two">two</option>';
           imp.innerHTML = s;
           assert.equal(imp.innerHTML, s);
         });
