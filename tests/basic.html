@@ -421,6 +421,22 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           assert.equal(svgTemplate.namespaceURI, svgNamespace);
           assert.equal(svgTemplate.firstChild.namespaceURI, svgNamespace);
         });
+
+        test('DOMParser constructs correct templates', function() {
+          var DOM = (new DOMParser).parseFromString("<template></template>", "text/html");
+          assert.isTrue(DOM.querySelector("template") instanceof HTMLTemplateElement);
+        });
+
+        test('innerHTML (option element)', function() {
+          var container = document.createElement('div');
+          assert.equal(container.innerHTML, '');
+          var innerHTML = "<template><span>In template</span></template>";
+          container.innerHTML = innerHTML;
+          assert.equal(container.innerHTML, innerHTML);
+          assert.isTrue(container.firstChild instanceof HTMLTemplateElement);
+          assert.isOk(container.firstChild.content);
+          assert.isTrue(container.firstChild.content.firstChild instanceof HTMLSpanElement);
+        });
       });
     </script>
   </body>
