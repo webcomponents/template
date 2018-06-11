@@ -1,6 +1,6 @@
 {
   "name": "@webcomponents/template",
-  "version": "1.2.4",
+  "version": "1.2.5",
   "description": "Minimal template polyfills needed by webcomponents.js",
   "main": "template.js",
   "directories": {
