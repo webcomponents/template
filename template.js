@@ -126,6 +126,8 @@
   var capturedRemoveChild = Node.prototype.removeChild;
   var capturedAppendChild = Node.prototype.appendChild;
   var capturedReplaceChild = Node.prototype.replaceChild;
+  var capturedParseFromString = DOMParser.prototype.parseFromString;
+  var capturedHTMLElementInnerHTML = Object.getOwnPropertyDescriptor(window.HTMLElement.prototype, 'innerHTML');
 
   var elementQuerySelectorAll = Element.prototype.querySelectorAll;
   var docQuerySelectorAll = Document.prototype.querySelectorAll;
@@ -323,6 +325,24 @@
       }
       return el;
     };
+
+    DOMParser.prototype.parseFromString = function() {
+      var el = capturedParseFromString.apply(this, arguments);
+      PolyfilledHTMLTemplateElement.bootstrap(el);
+      return el;
+    };
+
+    Object.defineProperty(HTMLElement.prototype, 'innerHTML', {
+      get: function() {
+        return getInnerHTML(this);
+      },
+      set: function(text) {
+        capturedHTMLElementInnerHTML.set.call(this, text);
+        PolyfilledHTMLTemplateElement.bootstrap(this);
+      },
+      configurable: true,
+      enumerable: true
+    });
 
     // http://www.whatwg.org/specs/web-apps/current-work/multipage/the-end.html#escapingString
     var escapeAttrRegExp = /[&\u00A0"]/g;
