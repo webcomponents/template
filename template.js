@@ -128,6 +128,7 @@
   var capturedReplaceChild = Node.prototype.replaceChild;
   var capturedParseFromString = DOMParser.prototype.parseFromString;
   var capturedHTMLElementInnerHTML = Object.getOwnPropertyDescriptor(window.HTMLElement.prototype, 'innerHTML');
+  var capturedChildNodes = Object.getOwnPropertyDescriptor(window.Node.prototype, 'childNodes');
 
   var elementQuerySelectorAll = Element.prototype.querySelectorAll;
   var docQuerySelectorAll = Document.prototype.querySelectorAll;
@@ -456,7 +457,7 @@
         node =  /** @type {HTMLTemplateElement} */ (node).content;
       }
       var s = '';
-      var c$ = callback ? callback(node) : node.childNodes;
+      var c$ = callback ? callback(node) : capturedChildNodes.get.call(node);
       for (var i=0, l=c$.length, child; (i<l) && (child=c$[i]); i++) {
         s += getOuterHTML(child, node, callback);
       }
