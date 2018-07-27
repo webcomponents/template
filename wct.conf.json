@@ -1,5 +1,6 @@
 {
   "suites": ["tests/runner.html"],
+  "npm": true,
   "clientOptions": {
     "environmentImports": []
   },
