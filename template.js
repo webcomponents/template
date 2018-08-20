@@ -127,8 +127,31 @@
   var capturedAppendChild = Node.prototype.appendChild;
   var capturedReplaceChild = Node.prototype.replaceChild;
   var capturedParseFromString = DOMParser.prototype.parseFromString;
-  var capturedHTMLElementInnerHTML = Object.getOwnPropertyDescriptor(window.HTMLElement.prototype, 'innerHTML');
-  var capturedChildNodes = Object.getOwnPropertyDescriptor(window.Node.prototype, 'childNodes');
+  var capturedHTMLElementInnerHTML = Object.getOwnPropertyDescriptor(window.HTMLElement.prototype, 'innerHTML') || {
+    /**
+     * @this {!HTMLElement}
+     * @return {string}
+     */
+    get: function() {
+      return this.innerHTML;
+    },
+    /**
+     * @this {!HTMLElement}
+     * @param {string}
+     */
+    set: function(text) {
+      this.innerHTML = text;
+    }
+  };
+  var capturedChildNodes = Object.getOwnPropertyDescriptor(window.Node.prototype, 'childNodes') || {
+    /**
+     * @this {!Node}
+     * @return {!NodeList}
+     */
+    get: function() {
+      return this.childNodes;
+    }
+  };
 
   var elementQuerySelectorAll = Element.prototype.querySelectorAll;
   var docQuerySelectorAll = Document.prototype.querySelectorAll;
