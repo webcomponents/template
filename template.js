@@ -12,7 +12,7 @@
 (function() {
   'use strict';
 
-  var needsTemplate = (typeof HTMLTemplateElement === 'undefined');
+  var needsTemplate = (typeof HTMLTemplateElement === 'undefined') || HTMLTemplateElement.forcePolyfill;
   var brokenDocFragment = !(document.createDocumentFragment().cloneNode() instanceof DocumentFragment);
   var needsDocFrag = false;
 
