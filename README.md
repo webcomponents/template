@@ -1,17 +1,9 @@
-# template
-A minimal polyfill for `<template>`.
+## 🚨 Moved to [`webcomponents/polyfills/packages/template`][1] 🚨
 
-## Known limitations
+The [`webcomponents/template`][2] repo has been migrated to [`packages/template`][1] folder of the [`webcomponents/polyfills`][3] 🚝  *monorepo*.
 
-### Template nodes in main document are upgraded after `DOMContentLoaded`
+We are *actively* working on migrating open Issues and PRs to the new repo. New Issues and PRs should be filed at [`webcomponents/polyfills`][3].
 
-The first timepoint in which the polyfill can be certain the main document is loaded is `DOMContentLoaded`.
-As such, we use this timepoint to bootstrap any `<template>` as defined in the main document.
-This means that any scripts in the main document that run before this event (e.g. inline scripts) will not have the properly upgraded templates.
-Instead, listen for `DOMContentLoaded` yourself and only after that interact with any `<template>` in the main document.
-
-## License
-
-Everything in this repository is BSD style license unless otherwise specified.
-
-Copyright (c) 2016 The Polymer Authors. All rights reserved.
+[1]: https://github.com/webcomponents/polyfills/tree/master/packages/template
+[2]: https://github.com/webcomponents/template
+[3]: https://github.com/webcomponents/polyfills
